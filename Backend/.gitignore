@@ -1,0 +1,91 @@
+# Byte-compiled / optimized / DLL files
+_pycache_/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Hevy Folders
+JNE_02.05.2025/
+3d_Point_Cloud/
+panoramicimages/
+documents/
+Point_cloud3D/
+media/
+pointcloud3d
+ffmpeg-7.1.1-full_build
+
+# Virtual environments
+venv/
+myvenv/
+myenv/
+env/
+ENV/
+.venv/
+.pipenv/
+.myenv/
+
+
+# Django stuff:
+*.log
+*.potgit
+*.pyc
+*.mo
+*.sqlite3
+db.sqlite3
+media/
+staticfiles/
+
+# Django migrations
+*/migrations/_pycache_/
+/migrations/.py[cod]
+/migrations/.py
+
+# DRF browsable API cache
+*.db
+
+# Pytest
+.cache/
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
+# Test output
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# IDEs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variable files
+.env
+.env.*
+
+# pip tools
+pip-wheel-metadata/
+*.egg-info/
+dist/
+build/
+
+# Docker
+*.pid
+*.seed
+*.swp
+*.bak
+*.tmp

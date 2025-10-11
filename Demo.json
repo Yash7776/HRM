@@ -1,0 +1,11 @@
+{
+    "employee_id":"EMP-001",
+    "first_name":"Sneha",
+    "last_name":"Pathak",
+    "email":"sneha@gmail.com",
+    "phone_number":"7776087318",
+    "date_of_birth": "2005-12-13",
+    "date_of_joining": "2024-12-13",
+    "department":"Account",
+    "designation":"CA"
+}
