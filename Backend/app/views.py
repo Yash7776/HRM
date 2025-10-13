@@ -1,203 +1,143 @@
-from django.utils import timezone
-from django.contrib.auth.hashers import make_password, check_password
-from rest_framework.views import APIView
+from rest_framework import status, generics, permissions
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from .authentication import CustomJWTAuthentication
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
 
-
-from .models import UserAccount, Employee, Attendance, Leave, Salary
+from .models import Employee, Department, Designation
 from .serializers import (
-    UserAccountSerializer,
-    EmployeeSerializer,
-    AttendanceSerializer,
-    LeaveSerializer,
-    SalarySerializer,
+    UserRegistrationSerializer, 
+    UserLoginSerializer, 
+    UserSerializer,
+    EmployeeSerializer
 )
 
-
-# -----------------------------------------------------------
-# 🔹 USER AUTHENTICATION
-# -----------------------------------------------------------
-
-class RegisterView(APIView):
+class UserRegistrationAPIView(APIView):
+    permission_classes = [permissions.AllowAny]
+    
     def post(self, request):
-        required_fields = ['username', 'password', 'confirm_password', 'role']
-        missing_fields = [field for field in required_fields if field not in request.data]
-
-        if missing_fields:
+        serializer = UserRegistrationSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            user = serializer.save()
+            
+            # Generate tokens
+            refresh = RefreshToken.for_user(user)
+            
+            # Get employee data
+            employee = Employee.objects.get(user=user)
+            employee_serializer = EmployeeSerializer(employee)
+            
             return Response({
-                'error': f'Missing fields: {", ".join(missing_fields)}'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        username = request.data['username']
-        password = request.data['password']
-        confirm_password = request.data['confirm_password']
-        role = request.data['role']
-
-        if password != confirm_password:
-            return Response({'error': 'Passwords do not match'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if role not in ['Admin', 'HR', 'Employee']:
-            return Response({'error': 'Invalid role. Must be Admin, HR, or Employee'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if UserAccount.objects.filter(username=username).exists():
-            return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
-
-        user = UserAccount.objects.create(
-            username=username,
-            password=make_password(password),
-            role=role
-        )
-
-        return Response({'message': 'User registered successfully'}, status=status.HTTP_201_CREATED)
-
-
-class LoginView(APIView):
-    def post(self, request):
-        required_fields = ['username', 'password']
-        missing_fields = [field for field in required_fields if field not in request.data]
-
-        if missing_fields:
-            return Response({
-                'error': f'Missing fields: {", ".join(missing_fields)}'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        username = request.data['username']
-        password = request.data['password']
-
-        try:
-            user = UserAccount.objects.get(username=username)
-            if check_password(password, user.password):
-                refresh = RefreshToken.for_user(user)
-                refresh['user_id'] = user.user_id
-                user.last_login = timezone.now()
-                user.save()
-
-                return Response({
+                'message': 'User registered successfully',
+                'user': UserSerializer(user).data,
+                'employee': employee_serializer.data,
+                'tokens': {
                     'refresh': str(refresh),
                     'access': str(refresh.access_token),
-                    'username': user.username,
-                    'role': user.role
-                }, status=status.HTTP_200_OK)
-            else:
-                return Response({'error': 'Invalid password'}, status=status.HTTP_401_UNAUTHORIZED)
-        except UserAccount.DoesNotExist:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+                }
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class UserLoginAPIView(APIView):
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        serializer = UserLoginSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            employee = Employee.objects.get(user=user)
+            
+            # Generate tokens
+            refresh = RefreshToken.for_user(user)
+            
+            # Serialize user and employee data
+            user_serializer = UserSerializer(user)
+            employee_serializer = EmployeeSerializer(employee)
+            
+            return Response({
+                'message': 'Login successful',
+                'user': user_serializer.data,
+                'employee': employee_serializer.data,
+                'tokens': {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                }
+            }, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class UserDetailView(APIView):
-    authentication_classes = [CustomJWTAuthentication]
+class UserLogoutAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            refresh_token = request.data.get('refresh_token')
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            
+            return Response({
+                'message': 'Logout successful'
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'error': 'Invalid token'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
+class UserProfileAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
     def get(self, request):
         user = request.user
-        user_serializer = UserAccountSerializer(user)
-
-        # Fetch associated Employee details if exists
-        employee_data = None
-        if hasattr(user, 'employee'):
-            employee_serializer = EmployeeSerializer(user.employee)
-            employee_data = employee_serializer.data
-
+        employee = Employee.objects.get(user=user)
+        
+        user_serializer = UserSerializer(user)
+        employee_serializer = EmployeeSerializer(employee)
+        
         return Response({
-            "user": user_serializer.data,
-            "employee": employee_data
+            'user': user_serializer.data,
+            'employee': employee_serializer.data
         }, status=status.HTTP_200_OK)
 
-
-# -----------------------------------------------------------
-# 🔹 EMPLOYEE MANAGEMENT
-# -----------------------------------------------------------
-
-class EmployeeView(APIView):
-    authentication_classes = [CustomJWTAuthentication]
-
-    def get(self, request):
-        employees = Employee.objects.all().order_by('-created_at')
-        serializer = EmployeeSerializer(employees, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
+class RefreshTokenAPIView(APIView):
+    permission_classes = [permissions.AllowAny]
+    
     def post(self, request):
-        role = request.user.role
-        if role not in ['Admin', 'HR']:
-            return Response({'error': 'Access denied. Only Admin or HR can add employees.'}, status=403)
+        refresh_token = request.data.get('refresh')
+        
+        if not refresh_token:
+            return Response({
+                'error': 'Refresh token is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            refresh = RefreshToken(refresh_token)
+            access_token = str(refresh.access_token)
+            
+            return Response({
+                'access': access_token
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'error': 'Invalid or expired refresh token'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = EmployeeSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({'message': 'Employee added successfully', 'data': serializer.data}, status=201)
-        return Response(serializer.errors, status=400)
-
-
-# -----------------------------------------------------------
-# 🔹 ATTENDANCE MANAGEMENT
-# -----------------------------------------------------------
-
-class AttendanceView(APIView):
-    permission_classes = [IsAuthenticated]
-
+# Additional view to get departments and designations for registration
+class RegistrationDataAPIView(APIView):
+    permission_classes = [permissions.AllowAny]
+    
     def get(self, request):
-        attendance = Attendance.objects.all().order_by('-date')
-        serializer = AttendanceSerializer(attendance, many=True)
-        return Response(serializer.data, status=200)
-
-    def post(self, request):
-        role = request.user.role
-        if role not in ['Admin', 'HR', 'Employee']:
-            return Response({'error': 'Access Denied'}, status=403)
-
-        serializer = AttendanceSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({'message': 'Attendance marked successfully', 'data': serializer.data}, status=201)
-        return Response(serializer.errors, status=400)
-
-
-# -----------------------------------------------------------
-# 🔹 LEAVE MANAGEMENT
-# -----------------------------------------------------------
-
-class LeaveView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        leaves = Leave.objects.all().order_by('-applied_on')
-        serializer = LeaveSerializer(leaves, many=True)
-        return Response(serializer.data, status=200)
-
-    def post(self, request):
-        role = request.user.role
-        if role != 'Employee':
-            return Response({'error': 'Only Employees can apply for leave'}, status=403)
-
-        serializer = LeaveSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({'message': 'Leave applied successfully', 'data': serializer.data}, status=201)
-        return Response(serializer.errors, status=400)
-
-
-# -----------------------------------------------------------
-# 🔹 SALARY MANAGEMENT
-# -----------------------------------------------------------
-
-class SalaryView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        salary_records = Salary.objects.all().order_by('-salary_month')
-        serializer = SalarySerializer(salary_records, many=True)
-        return Response(serializer.data, status=200)
-
-    def post(self, request):
-        role = request.user.role
-        if role not in ['Admin', 'HR']:
-            return Response({'error': 'Only Admin or HR can add salary details'}, status=403)
-
-        serializer = SalarySerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({'message': 'Salary record added successfully', 'data': serializer.data}, status=201)
-        return Response(serializer.errors, status=400)
+        departments = Department.objects.all().values('id', 'name')
+        designations = Designation.objects.all().values('id', 'title')
+        
+        return Response({
+            'departments': departments,
+            'designations': designations
+        }, status=status.HTTP_200_OK)

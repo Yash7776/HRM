@@ -1,6 +1,5 @@
 import React, { useContext } from "react";
 import AuthContext from "../context/AuthContex.jsx";
-// import { Button } from "flowbite-react";
 
 const Login = () => {
   const { loginUser } = useContext(AuthContext);

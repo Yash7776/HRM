@@ -7,8 +7,8 @@ import Nabvar from "./components/Nabvar";
 import PrivateRoute from "./utils/PrivateRoutes";
 import { AuthProvider } from './context/AuthContex.jsx';
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import Employess from "./components/Employess/EmployeeList.jsx";
-import AddEmployee from "./components/Employess/AddEmployee.jsx";
+import Employess from "./components/EmployeeList.jsx";
+import AddEmployee from "./components/AddEmployee.jsx";
 import Base from "./components/Base.jsx";
 
 function App() {
