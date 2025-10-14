@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }) => {
           username: e.target.username.value,
           email: e.target.email.value,
           password: e.target.password.value,
-          confirm_password: e.target.confirm_password.value,
+          password2: e.target.password2.value,
 
           first_name: e.target.first_name.value,
           last_name: e.target.last_name.value,
@@ -104,12 +104,16 @@ export const AuthProvider = ({ children }) => {
       console.log({ data, response });
 
       if (response.status === 201) {
-        alert("Employee Registered Successfully!");
-      } else {
-        alert(data.error || "Something went wrong!");
+        toast.success("User Registration Sucessfully");
+        setLoading(false);
+      }
+      else{
+        setLoading(false)
       }
     } catch (error) {
-      alert("Server Unreachable");
+      navigate("/notfound")
+      toast.info("Server Is Unrechable")
+      setLoading(false)
     }
   };
 

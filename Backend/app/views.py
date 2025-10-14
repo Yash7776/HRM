@@ -8,11 +8,24 @@ from django.contrib.auth.models import User
 
 from .models import Employee, Department, Designation
 from .serializers import (
+    DesignationDropdownSerializer,
     UserRegistrationSerializer, 
     UserLoginSerializer, 
     UserSerializer,
-    EmployeeSerializer
+    EmployeeSerializer,
+    DepartmentDropdownSerializer
 )
+
+# Department APIs
+class DepartmentDropdownAPIView(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = DepartmentDropdownSerializer
+    queryset = Department.objects.all()
+
+class DesignationDropdownAPIView(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = DesignationDropdownSerializer
+    queryset = Designation.objects.all()
 
 class UserRegistrationAPIView(APIView):
     permission_classes = [permissions.AllowAny]

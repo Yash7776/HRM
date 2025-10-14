@@ -6,10 +6,12 @@ import Login from "./components/Login";
 import Nabvar from "./components/Nabvar";
 import PrivateRoute from "./utils/PrivateRoutes";
 import { AuthProvider } from './context/AuthContex.jsx';
+import { ServicesProvider } from "./context/ServicesContext.jsx";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Employess from "./components/EmployeeList.jsx";
 import AddEmployee from "./components/AddEmployee.jsx";
 import Base from "./components/Base.jsx";
+import NotFound from "./components/NotFound.jsx";
 
 function App() {
   // Use useLocation inside a component that is within BrowserRouter
@@ -30,10 +32,12 @@ function App() {
             <Route element={<PrivateRoute />}>
               <Route path="/employess" element={<Employess />} />
               <Route exact path="/" element={<Home />} />
+              <Route path="/employess/add" element={<AddEmployee />} />
             </Route>
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/employess/add" element={<AddEmployee />} />
+            <Route path="*" element={<NotFound />} />
+            
           </Routes>
         </main>
         <Footer />
@@ -47,7 +51,9 @@ function AppWrapper() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <ServicesProvider>
         <App />
+        </ServicesProvider>
       </AuthProvider>
     </BrowserRouter>
   );

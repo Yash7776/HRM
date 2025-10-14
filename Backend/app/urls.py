@@ -1,6 +1,8 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
+    DepartmentDropdownAPIView,
+    DesignationDropdownAPIView,
     UserRegistrationAPIView,
     UserLoginAPIView,
     UserLogoutAPIView,
@@ -10,6 +12,9 @@ from .views import (
 )
 
 urlpatterns = [
+    # Department And Designation Data Fetching Api
+    path('designations/', DesignationDropdownAPIView.as_view(), name='designation-dropdown'),
+    path('departments/', DepartmentDropdownAPIView.as_view(), name='department-dropdown'),
     # Authentication endpoints
     path('register/', UserRegistrationAPIView.as_view(), name='register'),
     path('login/', UserLoginAPIView.as_view(), name='login'),

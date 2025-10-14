@@ -119,3 +119,14 @@ class EmployeeSerializer(serializers.ModelSerializer):
             'designation', 'designation_title', 'date_of_birth', 'gender',
             'phone_number', 'work_email', 'date_joined', 'is_active'
         )
+
+# Simple serializers for dropdowns (if you only need basic data)
+class DepartmentDropdownSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Department
+        fields = ['id', 'name']
+
+class DesignationDropdownSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Designation
+        fields = ['id', 'title', 'level']

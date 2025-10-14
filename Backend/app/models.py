@@ -64,7 +64,7 @@ class Employee(models.Model):
     ])
     
     # Work Information
-    work_email = models.EmailField(unique=True)
+    work_email = models.EmailField(null=True,blank=True)
     work_phone = models.CharField(max_length=15, blank=True)
     work_location = models.CharField(max_length=100, blank=True)
     
